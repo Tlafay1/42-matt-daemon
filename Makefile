@@ -1,6 +1,6 @@
 CC = c++
 
-NAME := matt_daemon
+NAME := Matt_daemon
 
 CPPFLAGS := -Wall -Wextra -Werror -std=c++98
 
