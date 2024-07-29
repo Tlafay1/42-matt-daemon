@@ -2,7 +2,12 @@
 
 Tintin_reporter::Tintin_reporter()
 {
-    file.open(LOG_FILE, std::ios::app);
+    file.open(LOG_FILE, std::ios::app | std::ios::out);
+    if (!file.is_open())
+    {
+        std::cerr << "Failed to open log file\n";
+        exit(1);
+    }
 }
 
 Tintin_reporter::Tintin_reporter(Tintin_reporter const &src)
