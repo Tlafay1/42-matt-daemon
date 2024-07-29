@@ -10,7 +10,7 @@ OBJS := ${SRCS:.cpp=.o}
 
 OBJDIR := $(addprefix obj/, $(OBJS))
 
-INCLUDES := matt_daemon.hpp
+INCLUDES := Matt_daemon.hpp
 
 INCDIR := $(addprefix includes/, $(INCLUDES))
 
