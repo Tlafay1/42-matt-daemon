@@ -1,4 +1,5 @@
 #include "Matt_daemon.hpp"
+#include "Tintin_reporter.hpp"
 
 int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
 {

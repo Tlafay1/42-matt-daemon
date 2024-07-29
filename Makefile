@@ -2,15 +2,15 @@ CC = c++
 
 NAME := Matt_daemon
 
-CPPFLAGS := -Wall -Wextra -Werror -std=c++98
+CPPFLAGS := -Wall -Wextra -Werror -std=c++11
 
-SRCS := main.cpp
+SRCS := main.cpp Tintin_reporter.cpp
 
 OBJS := ${SRCS:.cpp=.o}
 
 OBJDIR := $(addprefix obj/, $(OBJS))
 
-INCLUDES := Matt_daemon.hpp
+INCLUDES := Matt_daemon.hpp Tintin_reporter.hpp
 
 INCDIR := $(addprefix includes/, $(INCLUDES))
 
