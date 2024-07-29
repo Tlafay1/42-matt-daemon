@@ -14,9 +14,11 @@
 #include <sys/stat.h>
 #include <stdio.h>
 #include <cstdio>
+#include <sys/file.h>
+#include <sys/wait.h>
 
 #define PORT 4240
 #define MAX_CLIENTS 3
-#define DEBUG 1
+#define LOCK_FILE "/var/log/matt_daemon.log"
 
 #endif
