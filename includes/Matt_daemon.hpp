@@ -14,6 +14,7 @@
 #include <sys/stat.h>
 #include <stdio.h>
 #include <cstdio>
+#include <list>
 
 #define PORT 4240
 #define MAX_CLIENTS 3
