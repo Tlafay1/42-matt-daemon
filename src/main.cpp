@@ -54,6 +54,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
         close(STDOUT_FILENO);
         close(STDERR_FILENO);
     }
+    Tintin_reporter reporter;
 
     // Create a socket
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -85,12 +86,11 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
     }
 
     // Listen for incoming connections
-    if (listen(server_fd, 3) == -1) {  // limit to 3 connections
+    if (listen(server_fd, MAX_CLIENTS + 1) == -1) {
         std::cerr << "Failed to listen on socket\n";
         close(server_fd);
         return 1;
     }
-    Tintin_reporter reporter;
 
     if (DEBUG)
         std::cout << "Listening on port " << PORT << "\n";
@@ -108,7 +108,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
 
         // Add all active client sockets to the set
         for (int fd = 0; fd <= max_sd; fd++) {
-            if (fd != server_fd && fd != -1) {
+            if (FD_ISSET(fd, &readfds)) {
                 FD_SET(fd, &readfds);
             }
         }
@@ -140,8 +140,8 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
                 int reject_socket = accept(server_fd, NULL, NULL);
                 if (reject_socket >= 0) {
                     if (DEBUG)
-                        std::cout << "Rejected connection, socket fd is " << reject_socket << "(Too many active connections)\n";
-                    reporter << "Rejected connection, socket fd is " + std::to_string(reject_socket) + "(Too many active connections)\n";
+                        std::cout << "Rejected connection, socket fd is " << reject_socket << " (Too many active connections)\n";
+                    reporter << "Rejected connection, socket fd is " + std::to_string(reject_socket) + " (Too many active connections)\n";
                     close(reject_socket);
                 }
             }
