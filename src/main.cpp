@@ -197,9 +197,14 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
                 {
                     buffer[bytes_received] = '\0';
                     reporter << "Received from fd " + std::to_string(fd) + ": " + buffer;
-                }
-                else
-                {
+                    if (std::string(buffer) == "quit\n") {
+                        close(fd);
+                        if (DEBUG)
+                            std::cout << "Quitting\n";
+                        reporter << "Quitting\n";
+                        exit(0);
+                    }
+                } else {
                     std::cerr << "recv() error: " << strerror(errno) << "\n";
                     close(fd);
                     client_sockets[i] = 0;
