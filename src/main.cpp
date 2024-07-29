@@ -199,8 +199,6 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
                     reporter << "Received from fd " + std::to_string(fd) + ": " + buffer;
                     if (std::string(buffer) == "quit\n") {
                         close(fd);
-                        if (DEBUG)
-                            std::cout << "Quitting\n";
                         reporter << "Quitting\n";
                         exit(0);
                     }
