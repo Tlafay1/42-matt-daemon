@@ -94,7 +94,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
 
     if (DEBUG)
         std::cout << "Listening on port " << PORT << "\n";
-    reporter << "Listening on port " << PORT << "\n";
+    reporter << "Listening on port " + std::to_string(PORT) + "\n";
 
     // Set up the file descriptor set
     fd_set readfds;
@@ -130,7 +130,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
                 }
                 if (DEBUG)
                     std::cout << "New connection, socket fd is " << new_socket << "\n";
-                reporter << "New connection, socket fd is " << new_socket << "\n";
+                reporter << "New connection, socket fd is " + std::to_string(new_socket) + "\n";
                 if (new_socket > max_sd) {
                     max_sd = new_socket;
                 }
@@ -141,7 +141,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
                 if (reject_socket >= 0) {
                     if (DEBUG)
                         std::cout << "Rejected connection, socket fd is " << reject_socket << "(Too many active connections)\n";
-                    reporter << "Rejected connection, socket fd is " << reject_socket << "(Too many active connections)\n";
+                    reporter << "Rejected connection, socket fd is " + std::to_string(reject_socket) + "(Too many active connections)\n";
                     close(reject_socket);
                 }
             }
@@ -156,7 +156,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
                     // Connection closed
                     if (DEBUG)
                         std::cout << "Client disconnected, socket fd is " << fd << "\n";
-                    reporter << "Client disconnected, socket fd is " << fd << "\n";
+                    reporter << "Client disconnected, socket fd is " + std::to_string(fd) + "\n";
                     close(fd);
                     FD_CLR(fd, &readfds);
                     active_connections--;
@@ -171,7 +171,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
                     buffer[bytes_received] = '\0';
                     if (DEBUG)
                         std::cout << "Received from fd " << fd << ": " << buffer;
-                    reporter << "Received from fd " << fd << ": " << buffer;
+                    reporter << "Received from fd " + std::to_string(fd) + ": " + buffer;
                 } else {
                     std::cerr << "recv() error\n";
                     close(fd);

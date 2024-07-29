@@ -15,7 +15,7 @@
 #include <stdio.h>
 #include <cstdio>
 
-#define PORT 4241
+#define PORT 4240
 #define MAX_CLIENTS 3
 #define DEBUG 1
 
