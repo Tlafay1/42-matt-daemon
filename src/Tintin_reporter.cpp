@@ -35,6 +35,6 @@ void Tintin_reporter::log(std::string const &message)
 {
     std::time_t t = std::time(nullptr);
     std::tm tm = *std::localtime(&t);
-    file << std::put_time(&tm, "[ %d / %m / %Y - %H : %M : %S]") << "\t" << message;
+    file << std::put_time(&tm, "[%d/%m/%Y-%H:%M:%S]") << "\t" << message;
     file.flush();
 }
