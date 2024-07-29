@@ -21,18 +21,6 @@ void signal_handler(int signal)
 
 int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
 {
-    int signals[] = {SIGINT, SIGTERM, SIGQUIT, SIGHUP};
-    int num_signals = sizeof(signals) / sizeof(signals[0]);
-
-    // Set up signal handlers
-    for (int i = 0; i < num_signals; i++)
-    {
-        if (signal(signals[i], signal_handler) == SIG_ERR)
-        {
-            std::cerr << "Can't catch signal " << signals[i] << "\n";
-        }
-    }
-
     if (getuid())
     {
         std::cerr << "This program must be run as root\nQuitting !\n";
@@ -42,19 +30,6 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
     // Set up the lock file and start the fork
     if (!DEBUG)
     {
-        lock_file = open(LOCK_FILE, O_CREAT | O_WRONLY, 0644);
-        if (lock_file == -1)
-        {
-            std::cerr << "Failed to open lock file\n";
-            return 1;
-        }
-
-        if (flock(lock_file, LOCK_EX) == -1)
-        {
-            std::cerr << "Failed to lock file\n";
-            close(lock_file);
-            return 1;
-        }
         pid_t pid = fork();
         if (pid == -1)
         {
@@ -70,14 +45,40 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
             return 0;
         }
         // Write PID to lock file
-        char pid_str[16];
-        std::snprintf(pid_str, sizeof(pid_str), "%d", getpid());
-        write(lock_file, pid_str, std::strlen(pid_str));
+        // char pid_str[16];
+        // std::snprintf(pid_str, sizeof(pid_str), "%d", getpid());
+        // write(lock_file, pid_str, std::strlen(pid_str));
 
         // Child process
         setsid();
         chdir("/");
         umask(0);
+    }
+
+    int signals[] = {SIGINT, SIGTERM, SIGQUIT, SIGHUP};
+    int num_signals = sizeof(signals) / sizeof(signals[0]);
+
+    // Set up signal handlers
+    for (int i = 0; i < num_signals; i++)
+    {
+        if (signal(signals[i], signal_handler) == SIG_ERR)
+        {
+            std::cerr << "Can't catch signal " << signals[i] << "\n";
+        }
+    }
+
+    lock_file = open(LOCK_FILE, O_CREAT | O_WRONLY, 0644);
+    if (lock_file == -1)
+    {
+        std::cerr << "Failed to open lock file\n";
+        return 1;
+    }
+
+    if (flock(lock_file, LOCK_EX) == -1)
+    {
+        std::cerr << "Failed to lock file\n";
+        close(lock_file);
+        return 1;
     }
 
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -104,6 +105,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
     if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
     {
         std::cerr << "Failed to bind socket\n";
+        std::cout << strerror(errno);
         close(server_fd);
         return 1;
     }
@@ -207,14 +209,17 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
                     if (DEBUG)
                         std::cout << "Received from fd " << fd << ": " << buffer;
                     reporter << "Received from fd " + std::to_string(fd) + ": " + buffer;
-                    if (std::string(buffer) == "quit\n") {
+                    if (std::string(buffer) == "quit\n")
+                    {
                         close(fd);
                         if (DEBUG)
                             std::cout << "Quitting\n";
                         reporter << "Quitting\n";
                         exit(0);
                     }
-                } else {
+                }
+                else
+                {
                     std::cerr << "recv() error: " << strerror(errno) << "\n";
                     close(fd);
                     client_sockets[i] = 0;
