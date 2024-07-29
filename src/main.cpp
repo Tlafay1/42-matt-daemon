@@ -6,6 +6,8 @@ Tintin_reporter reporter;
 
 void signal_handler(int signal)
 {
+    if (DEBUG)
+        std::cout << "Signal " << signal << " received, exiting\n";
     reporter << "Signal " + std::to_string(signal) + " received, exiting\n";
     if (flock(lock_file, LOCK_UN) == -1)
     {
@@ -38,46 +40,48 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
     }
 
     // Set up the lock file and start the fork
-    lock_file = open(LOCK_FILE, O_CREAT | O_WRONLY, 0644);
-    if (lock_file == -1)
+    if (!DEBUG)
     {
-        std::cerr << "Failed to open lock file\n";
-        return 1;
-    }
+        lock_file = open(LOCK_FILE, O_CREAT | O_WRONLY, 0644);
+        if (lock_file == -1)
+        {
+            std::cerr << "Failed to open lock file\n";
+            return 1;
+        }
 
-    if (flock(lock_file, LOCK_EX) == -1)
-    {
-        std::cerr << "Failed to lock file\n";
-        close(lock_file);
-        return 1;
-    }
+        if (flock(lock_file, LOCK_EX) == -1)
+        {
+            std::cerr << "Failed to lock file\n";
+            close(lock_file);
+            return 1;
+        }
+        pid_t pid = fork();
+        if (pid == -1)
+        {
+            std::cerr << "Failed to fork\n";
+            close(lock_file);
+            return 1;
+        }
 
-    pid_t pid = fork();
-    if (pid == -1)
-    {
-        std::cerr << "Failed to fork\n";
-        close(lock_file);
-        return 1;
-    }
+        if (pid > 0)
+        {
+            // Parent process
+            close(lock_file);
+            return 0;
+        }
+        // Write PID to lock file
+        char pid_str[16];
+        std::snprintf(pid_str, sizeof(pid_str), "%d", getpid());
+        write(lock_file, pid_str, std::strlen(pid_str));
 
-    if (pid > 0)
-    {
-        // Parent process
-        close(lock_file);
-        return 0;
+        // Child process
+        setsid();
+        chdir("/");
+        umask(0);
+        close(STDIN_FILENO);
+        close(STDOUT_FILENO);
+        close(STDERR_FILENO);
     }
-    // Write PID to lock file
-    char pid_str[16];
-    std::snprintf(pid_str, sizeof(pid_str), "%d", getpid());
-    write(lock_file, pid_str, std::strlen(pid_str));
-
-    // Child process
-    setsid();
-    chdir("/");
-    umask(0);
-    close(STDIN_FILENO);
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
 
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd == -1)
@@ -113,7 +117,8 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
         close(server_fd);
         return 1;
     }
-
+    if (DEBUG)
+        std::cout << "Listening on port " << PORT << "\n";
     reporter << "Listening on port " + std::to_string(PORT) + "\n";
 
     fd_set readfds;
@@ -155,6 +160,8 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
                     std::cerr << "accept() error\n";
                     continue;
                 }
+                if (DEBUG)
+                    std::cout << "New connection, socket fd is " << new_socket << "\n";
                 reporter << "New connection, socket fd is " + std::to_string(new_socket) + "\n";
 
                 // Add new socket to client sockets array
@@ -173,6 +180,8 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
                 int reject_socket = accept(server_fd, NULL, NULL);
                 if (reject_socket >= 0)
                 {
+                    if (DEBUG)
+                        std::cout << "Rejected connection, socket fd is " << reject_socket << " (Too many active connections)\n";
                     reporter << "Rejected connection, socket fd is " + std::to_string(reject_socket) + " (Too many active connections)\n";
                     close(reject_socket);
                 }
@@ -188,6 +197,8 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
                 ssize_t bytes_received = recv(fd, buffer, sizeof(buffer) - 1, 0);
                 if (bytes_received == 0)
                 {
+                    if (DEBUG)
+                        std::cout << "Client disconnected, socket fd is " << fd << "\n";
                     reporter << "Client disconnected, socket fd is " + std::to_string(fd) + "\n";
                     close(fd);
                     client_sockets[i] = 0;
@@ -196,9 +207,13 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
                 else if (bytes_received > 0)
                 {
                     buffer[bytes_received] = '\0';
+                    if (DEBUG)
+                        std::cout << "Received from fd " << fd << ": " << buffer;
                     reporter << "Received from fd " + std::to_string(fd) + ": " + buffer;
                     if (std::string(buffer) == "quit\n") {
                         close(fd);
+                        if (DEBUG)
+                            std::cout << "Quitting\n";
                         reporter << "Quitting\n";
                         exit(0);
                     }
