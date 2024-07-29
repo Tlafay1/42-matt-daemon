@@ -8,6 +8,7 @@ class Tintin_reporter
 public:
     Tintin_reporter();
     Tintin_reporter &operator=(Tintin_reporter const &src);
+    Tintin_reporter &operator<<(std::string const &message);
     Tintin_reporter(Tintin_reporter const &src);
     ~Tintin_reporter();
 
