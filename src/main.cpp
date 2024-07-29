@@ -90,8 +90,11 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
         close(server_fd);
         return 1;
     }
+    Tintin_reporter reporter;
 
-    std::cout << "Listening on port " << PORT << "\n";
+    if (DEBUG)
+        std::cout << "Listening on port " << PORT << "\n";
+    reporter << "Listening on port " << PORT << "\n";
 
     // Set up the file descriptor set
     fd_set readfds;
@@ -113,9 +116,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
         // Wait for an activity on one of the sockets
         int activity = select(max_sd + 1, &readfds, NULL, NULL, NULL);
         if (activity < 0 && errno != EINTR) {
-            std::cerr << errno << "\n";
-            std::cerr << activity << "\n";
-            std::cerr << "select() error\n";
+            std::cerr << "select() error: " << strerror(errno) << "\n";
             break; // Exit the loop on select error
         }
 
@@ -127,8 +128,9 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
                     std::cerr << "accept() error\n";
                     continue;
                 }
-
-                std::cout << "New connection, socket fd is " << new_socket << "\n";
+                if (DEBUG)
+                    std::cout << "New connection, socket fd is " << new_socket << "\n";
+                reporter << "New connection, socket fd is " << new_socket << "\n";
                 if (new_socket > max_sd) {
                     max_sd = new_socket;
                 }
@@ -137,7 +139,9 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
                 // Reject new connections if there are already 3 active connections
                 int reject_socket = accept(server_fd, NULL, NULL);
                 if (reject_socket >= 0) {
-                    std::cout << "Connection rejected, too many clients\n";
+                    if (DEBUG)
+                        std::cout << "Rejected connection, socket fd is " << reject_socket << "(Too many active connections)\n";
+                    reporter << "Rejected connection, socket fd is " << reject_socket << "(Too many active connections)\n";
                     close(reject_socket);
                 }
             }
@@ -150,13 +154,24 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
                 ssize_t bytes_received = recv(fd, buffer, sizeof(buffer) - 1, 0);
                 if (bytes_received == 0) {
                     // Connection closed
-                    std::cout << "Client disconnected, socket fd is " << fd << "\n";
+                    if (DEBUG)
+                        std::cout << "Client disconnected, socket fd is " << fd << "\n";
+                    reporter << "Client disconnected, socket fd is " << fd << "\n";
                     close(fd);
                     FD_CLR(fd, &readfds);
                     active_connections--;
+
+                    // Recalculate max_sd if needed
+                    if (fd == max_sd) {
+                        while (max_sd > server_fd && !FD_ISSET(max_sd, &readfds)) {
+                            max_sd--;
+                        }
+                    }
                 } else if (bytes_received > 0) {
                     buffer[bytes_received] = '\0';
-                    std::cout << "Received from fd " << fd << ": " << buffer;
+                    if (DEBUG)
+                        std::cout << "Received from fd " << fd << ": " << buffer;
+                    reporter << "Received from fd " << fd << ": " << buffer;
                 } else {
                     std::cerr << "recv() error\n";
                     close(fd);
