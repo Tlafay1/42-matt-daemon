@@ -2,6 +2,7 @@
 
 Tintin_reporter::Tintin_reporter()
 {
+    mkdir(LOG_FOLDER.c_str(), 0755);
     file.open(LOG_FILE, std::ios::app);
     if (!file.is_open())
     {
