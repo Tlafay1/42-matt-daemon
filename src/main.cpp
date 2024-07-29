@@ -78,9 +78,6 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
         setsid();
         chdir("/");
         umask(0);
-        close(STDIN_FILENO);
-        close(STDOUT_FILENO);
-        close(STDERR_FILENO);
     }
 
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
