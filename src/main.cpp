@@ -56,14 +56,12 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
     }
     Tintin_reporter reporter;
 
-    // Create a socket
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd == -1) {
         std::cerr << "Failed to create socket\n";
         return 1;
     }
 
-    // Set socket options to allow reuse of address
     int opt = 1;
     if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
         std::cerr << "Failed to set socket options\n";
@@ -71,21 +69,18 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
         return 1;
     }
 
-    // Define server address
     struct sockaddr_in server_addr;
     std::memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(PORT);
 
-    // Bind the socket to the address
     if (bind(server_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1) {
         std::cerr << "Failed to bind socket\n";
         close(server_fd);
         return 1;
     }
 
-    // Listen for incoming connections
     if (listen(server_fd, MAX_CLIENTS + 1) == -1) {
         std::cerr << "Failed to listen on socket\n";
         close(server_fd);
@@ -96,33 +91,32 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
         std::cout << "Listening on port " << PORT << "\n";
     reporter << "Listening on port " + std::to_string(PORT) + "\n";
 
-    // Set up the file descriptor set
     fd_set readfds;
     int max_sd = server_fd;
-    int active_connections = 0;  // To track the number of active connections
+    int client_sockets[MAX_CLIENTS] = {0};
+    int active_connections = 0;
 
     while (true) {
-        // Clear the socket set and add server socket to the set
         FD_ZERO(&readfds);
         FD_SET(server_fd, &readfds);
-
-        // Add all active client sockets to the set
-        for (int fd = 0; fd <= max_sd; fd++) {
-            if (FD_ISSET(fd, &readfds)) {
-                FD_SET(fd, &readfds);
+        
+        for (int i = 0; i < MAX_CLIENTS; ++i) {
+            if (client_sockets[i] > 0) {
+                FD_SET(client_sockets[i], &readfds);
+            }
+            if (client_sockets[i] > max_sd) {
+                max_sd = client_sockets[i];
             }
         }
 
-        // Wait for an activity on one of the sockets
         int activity = select(max_sd + 1, &readfds, NULL, NULL, NULL);
         if (activity < 0 && errno != EINTR) {
             std::cerr << "select() error: " << strerror(errno) << "\n";
-            break; // Exit the loop on select error
+            break;
         }
 
-        // If something happened on the master socket, it's an incoming connection
         if (FD_ISSET(server_fd, &readfds)) {
-            if (active_connections < 3) {
+            if (active_connections < MAX_CLIENTS) {
                 int new_socket = accept(server_fd, NULL, NULL);
                 if (new_socket < 0) {
                     std::cerr << "accept() error\n";
@@ -131,12 +125,16 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
                 if (DEBUG)
                     std::cout << "New connection, socket fd is " << new_socket << "\n";
                 reporter << "New connection, socket fd is " + std::to_string(new_socket) + "\n";
-                if (new_socket > max_sd) {
-                    max_sd = new_socket;
+                
+                // Add new socket to client sockets array
+                for (int i = 0; i < MAX_CLIENTS; ++i) {
+                    if (client_sockets[i] == 0) {
+                        client_sockets[i] = new_socket;
+                        break;
+                    }
                 }
                 active_connections++;
             } else {
-                // Reject new connections if there are already 3 active connections
                 int reject_socket = accept(server_fd, NULL, NULL);
                 if (reject_socket >= 0) {
                     if (DEBUG)
@@ -147,35 +145,27 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
             }
         }
 
-        // Handle IO on other sockets
-        for (int fd = 0; fd <= max_sd; fd++) {
-            if (FD_ISSET(fd, &readfds) && fd != server_fd) {
+        for (int i = 0; i < MAX_CLIENTS; ++i) {
+            int fd = client_sockets[i];
+            if (FD_ISSET(fd, &readfds)) {
                 char buffer[1024];
                 ssize_t bytes_received = recv(fd, buffer, sizeof(buffer) - 1, 0);
                 if (bytes_received == 0) {
-                    // Connection closed
                     if (DEBUG)
                         std::cout << "Client disconnected, socket fd is " << fd << "\n";
                     reporter << "Client disconnected, socket fd is " + std::to_string(fd) + "\n";
                     close(fd);
-                    FD_CLR(fd, &readfds);
+                    client_sockets[i] = 0;
                     active_connections--;
-
-                    // Recalculate max_sd if needed
-                    if (fd == max_sd) {
-                        while (max_sd > server_fd && !FD_ISSET(max_sd, &readfds)) {
-                            max_sd--;
-                        }
-                    }
                 } else if (bytes_received > 0) {
                     buffer[bytes_received] = '\0';
                     if (DEBUG)
                         std::cout << "Received from fd " << fd << ": " << buffer;
                     reporter << "Received from fd " + std::to_string(fd) + ": " + buffer;
                 } else {
-                    std::cerr << "recv() error\n";
+                    std::cerr << "recv() error: " << strerror(errno) << "\n";
                     close(fd);
-                    FD_CLR(fd, &readfds);
+                    client_sockets[i] = 0;
                     active_connections--;
                 }
             }
