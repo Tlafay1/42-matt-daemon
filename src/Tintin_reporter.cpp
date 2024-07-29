@@ -2,7 +2,7 @@
 
 Tintin_reporter::Tintin_reporter()
 {
-    file.open(LOG_FILE, std::ios::app | std::ios::out);
+    file.open(LOG_FILE, std::ios::app);
     if (!file.is_open())
     {
         std::cerr << "Failed to open log file\n";
@@ -35,5 +35,6 @@ void Tintin_reporter::log(std::string const &message)
 {
     std::time_t t = std::time(nullptr);
     std::tm tm = *std::localtime(&t);
-    file << std::put_time(&tm, "[ %d / %m / %Y - %H : %M : %S]") << "\t" << message << std::endl;
+    file << std::put_time(&tm, "[ %d / %m / %Y - %H : %M : %S]") << "\t" << message;
+    file.flush();
 }
