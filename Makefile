@@ -1,6 +1,6 @@
 CC = c++
 
-NAME := Matt_daemon
+NAME := matt_daemon
 
 CPPFLAGS := -Wall -Wextra -Werror -std=c++98
 
@@ -10,7 +10,7 @@ OBJS := ${SRCS:.cpp=.o}
 
 OBJDIR := $(addprefix obj/, $(OBJS))
 
-INCLUDES := Matt_daemon.hpp
+INCLUDES := matt_daemon.hpp
 
 INCDIR := $(addprefix includes/, $(INCLUDES))
 
