@@ -73,10 +73,10 @@ int main(void)
         }
     }
 
-
-    if (flock(lock_file, LOCK_EX) == -1)
+    if (flock(lock_file, LOCK_NB | LOCK_EX) == -1)
     {
         std::cerr << "Failed to lock file\n";
+        reporter << "Failed to lock file\n";
         close(lock_file);
         return 1;
     }
