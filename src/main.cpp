@@ -19,7 +19,7 @@ void signal_handler(int signal)
     exit(0);
 }
 
-int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
+int main(void)
 {
     if (getuid())
     {
