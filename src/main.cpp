@@ -27,6 +27,12 @@ int main(void)
         return 1;
     }
 
+    lock_file = open(LOCK_FILE, O_CREAT | O_WRONLY, 0644);
+    if (lock_file == -1)
+    {
+        std::cerr << "Failed to open lock file\n";
+        return 1;
+    }
     // Set up the lock file and start the fork
     if (!DEBUG)
     {
@@ -45,9 +51,9 @@ int main(void)
             return 0;
         }
         // Write PID to lock file
-        // char pid_str[16];
-        // std::snprintf(pid_str, sizeof(pid_str), "%d", getpid());
-        // write(lock_file, pid_str, std::strlen(pid_str));
+        char pid_str[16];
+        std::snprintf(pid_str, sizeof(pid_str), "%d", getpid());
+        write(lock_file, pid_str, std::strlen(pid_str));
 
         // Child process
         setsid();
@@ -67,12 +73,6 @@ int main(void)
         }
     }
 
-    lock_file = open(LOCK_FILE, O_CREAT | O_WRONLY, 0644);
-    if (lock_file == -1)
-    {
-        std::cerr << "Failed to open lock file\n";
-        return 1;
-    }
 
     if (flock(lock_file, LOCK_EX) == -1)
     {
