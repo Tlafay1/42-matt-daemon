@@ -4,19 +4,24 @@
 int lock_file;
 Tintin_reporter reporter;
 
-void signal_handler(int signal)
+void quit_program()
 {
-    if (DEBUG)
-        std::cout << "Signal " << signal << " received, exiting\n";
-    reporter << "Signal " + std::to_string(signal) + " received, exiting\n";
     if (flock(lock_file, LOCK_UN) == -1)
     {
-        std::cerr << "Failed to lock file\n";
+        std::cerr << "Failed to unlock file\n";
         close(lock_file);
     }
     close(lock_file);
     std::remove(LOCK_FILE);
     exit(0);
+}
+
+void signal_handler(int signal)
+{
+    if (DEBUG)
+        std::cout << "Signal " << signal << " received, exiting\n";
+    reporter << "Signal " + std::to_string(signal) + " received, exiting\n";
+    quit_program();
 }
 
 int main(void)
@@ -215,7 +220,7 @@ int main(void)
                         if (DEBUG)
                             std::cout << "Quitting\n";
                         reporter << "Quitting\n";
-                        exit(0);
+                        quit_program();
                     }
                 }
                 else
